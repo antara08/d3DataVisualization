@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+body {
+  background-color: white;
+}
+.axis {
+	font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #D4D8DA;
+  stroke-width: 2px;
+  shape-rendering: crispEdges;
+}
+
+.line {
+  fill: none;
+  stroke: #6F257F;
+  stroke-width: 5px;
+}
+
+.overlay {
+  fill: none;
+  pointer-events: all;
+}
+
+.focus circle {
+  fill: #F1F3F3;
+  stroke: #6F257F;
+  stroke-width: 5px;
+}
+
+.hover-line {
+  stroke: #6F257F;
+  stroke-width: 2px;
+  stroke-dasharray: 3,3;
+}
+
+.area {
+  fill: steelblue;
+  clip-path: url(#clip);
+}
+
+.label {
+    background-color: lightblue;
+    color: black;
+    padding: 10px;
+}
+
+
+</style>
+<title>Transfer SWT2 Source</title>
+<h2 class="label">Transfer SWT2 Source</h2>
+<script src="/static/lib/js/jquery-3.3.1.min.js"> </script>
+<script>
+$(document).ready(function() {
+	//$("#gdTable td").click(function (e) {
+		$("#gdTable").on("click", ".division", function() {
+		   var text = $(this).text();
+		   var param = $(this).find('input[type=hidden]').val();
+		   //alert('In Gridview page, clicked row Display-value:' + text +"; param to be passed:"+param);
+		   var newwindow =window.open("TransferDetailSWT2Src?input="+param,'Transfer_Detail','width=980,height=680,toolbar=0,scrollbars=yes,location=20');
+		   if (window.focus) {
+			   newwindow.focus();
+			};
+	});
+	
+
+    data=JSON.parse({{ data | tojson | safe }})
+		
+	  var tr;
+	  var th;
+	  // creating all cells
+	  // Adding the <TH>
+	  var thVal = data[0].x;
+	  th = $("<tr>");
+	  th.append("<th> &nbsp; </th>");
+	  for (var h = 0; h < thVal.length; h++) {
+		  th.append("<th>" + thVal[h].split("^")[0] + "</th>");
+	  }
+	  $('#gdTable').append(th);
+	  
+	  // Adding the values.
+	  for (var i = 0; i <data.length; i++) {
+		//alert(data[i].y + "----" + data[i].x);
+	 	tr = $("<tr>");
+	 	var src = data[i].x;
+	    for (var j = 0; j < src.length; j++) { 
+	    	//alert("i="+ i+ ":" +src[j]);
+	    	var thtd = src[j].split("^");
+	    	if(j==0){ 
+	    		tr.append("<td class='division'>"+ data[i].y + "</td>");
+	    		tr.append("<td class='division'> <input type='hidden' value="+data[i].y+"^"+thtd[0]+">" + thtd[1] + "</td>");
+	    	}else {
+	    		tr.append("<td class='division'> <input type='hidden' value="+data[i].y+"^"+thtd[0]+">" + thtd[1] + "</td>");
+	    	}
+	    }
+	    // add the row to the end of the table body
+	    //tblBody.appendChild(row);
+	    tr.append("</tr>")
+	    $('#gdTable').append(tr);
+	  } // End all rows
+	 
+});
+
+</script>
+</head>
+<body>
+	<table id="gdTable" border= "1"></table>
+</body>
+</html>

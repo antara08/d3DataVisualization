@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Deletion Dashboard</title>
+<style> /* set the CSS */
+
+body { font: 12px Arial;}
+path {
+    stroke: steelblue;
+    stroke-width: 2px;
+    fill: none;
+}
+
+.axis path,
+.axis line {
+    fill: none;
+    stroke: grey;
+    stroke-width: 1px;
+    shape-rendering: crispEdges;
+}
+
+div.tooltip {
+    position: absolute;
+    text-align: center;
+    width: 100px;
+    height: 40px;
+    padding: 2px;
+    font: 12px sans-serif;
+    background: lightsteelblue;
+    border: 0px;
+    border-radius: 8px;
+}
+
+a:link {
+    color: black;
+    background-color: transparent;
+    text-decoration: none;
+}
+
+a:visited {
+    color: #1181B8;
+    background-color: transparent;
+    text-decoration: none;
+}
+
+a:hover {
+    color: red;
+    background-color: transparent;
+    text-decoration: underline;
+}
+
+a:active {
+    color: yellow;
+    background-color: transparent;
+    text-decoration: underline;
+}
+
+.label {
+    background-color: lightblue;
+    color: black;
+    padding: 10px;
+}
+
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 2px;
+  clip-path: url(#clip);
+}
+
+
+
+</style>
+
+</head>
+<body>
+<h2 class="label">Transfer Dashboard</h2>
+
+<script src="https://d3js.org/d3.v4.min.js"></script>
+	<table border="2" >
+		<tr>
+			<td colspan="1" bordercolor="green" align="left"  title="Storage Charts">
+                <a href="{{url_for('TransferSWT2Source')}}">1.TransferSWT2Source</a>
+			</td>
+        <tr>
+			<td  colspan="1" bordercolor="green" align="left"  title="Storage Charts">
+                <a href="{{url_for('Transfer')}}">2.TransferSWT2Destination</a>
+			</td>
+        </tr>
+
+	</table>
+</body>
+</html>

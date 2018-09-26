@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Storage Monitor</title>
+<style> /* set the CSS */
+/* HTML Styling */
+
+a:link {
+    color: black;
+    background-color: transparent;
+    text-decoration: none;
+}
+
+a:visited {
+    color: #1181B8;
+    background-color: transparent;
+    text-decoration: none;
+}
+
+a:hover {
+    color: red;
+    background-color: transparent;
+    text-decoration: underline;
+}
+
+a:active {
+    color: yellow;
+    background-color: transparent;
+    text-decoration: underline;
+}
+
+div.container {
+    width: 100%;
+    border: 1px solid gray;
+}
+/*-------------------------------------------*/
+body { font: 15px Arial;}
+
+ul span
+{font-size:16px; font-style: normal; padding: 10px;color: black}
+
+.label {
+    background-color: lightblue;
+    color: black;
+    padding: 10px;
+}
+path {
+    stroke: steelblue;
+    stroke-width:2px;
+    fill: none;
+}
+
+.legend {
+    font-size: 16px;
+    font-weight: bold;
+    text-anchor: middle;
+}
+
+
+.axis path,
+.axis line {
+    fill: none;
+    stroke: grey;
+    stroke-width:1px;
+    shape-rendering: crispEdges;
+}
+
+div.tooltip {
+    position: absolute;
+    text-align: center;
+    width: 100px;
+    height: 40px;
+    padding: 2px;
+    font: 12px sans-serif;
+    background: lightsteelblue;
+    border: 0px;
+    border-radius: 8px;
+}
+
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 2px;
+  clip-path: url(#clip);
+}
+
+</style>
+
+</head>
+<body>
+<h2 class="label">Storage Monitoring Dashboard</h2>
+<div class="container">
+<ul>
+<span><a href="{{url_for('Deletion')}}" >Deletion Dashboard </a></span>
+<span><a href="{{url_for('Tran')}}">Transfers Dashboard</a></span>
+<span><a href="{{url_for('SWT2_CPB_SCRATCHDISK')}}">SWT2_CPB_SCRATCHDISK</a></span>
+<span><a href="{{url_for('SWT2_CPB_LOCALGROUPDISK')}}">SWT2_CPB_LOCALGROUPDISK</a></span>
+<span><a href="{{url_for('SWT2_CPB_DATADISK')}}">SWT2_CPB_DATADISK</a></span>
+<span><a href="{{url_for('UTA_SWT2_DATAPDISK')}}">UTA_SWT2_DATADISK</a></span>
+<span><a href="{{url_for('slider')}}">Settings</a></span>
+
+</ul>
+
+<script src="https://d3js.org/d3.v4.min.js"></script>
+	<table border="2" width="100%">
+        <tr>
+            <td colspan="3" height="500" bordercolor="green" align="center"  title="Storage Charts">
+                <h3>SWT2_CPB_DATADISK</h3>
+				<div id="linechart1">
+					<svg id="svg1" height="400" width="1300"></svg>
+				</div>
+			</td>
+        <tr>
+        <tr>
+            <td colspan="3" height="500" bordercolor="green" align="center"  title="Storage Charts">
+                <h3>SWT2_CPB_LOCALGROUPDISK</h3>
+				<div id="linechart2">
+					<svg id="svg2" height="400" width="1300"></svg>
+				</div>
+			</td>
+        <tr>
+        <tr>
+            <td colspan="3" height="500" bordercolor="green" align="center"  title="Storage Charts">
+                <h3>SWT2_CPB_SCRATCHDISK</h3>
+				<div id="linechart3">
+					<svg id="svg3" height="400" width="1300"></svg>
+				</div>
+			</td>
+        <tr>
+        <tr>
+            <td colspan="3" height="500" bordercolor="green" align="center"  title="Storage Charts">
+                <h3>UTA_SWT2_DATADISK</h3>
+				<div id="linechart4">
+					<svg id="svg4" height="400" width="1300"></svg>
+				</div>
+			</td>
+        <tr>
+	</table>
+	<script>
+
+var bytesToString = function (bytes) {
+    var fmt = d3.format('.0f');
+    if (bytes < 1024) {
+        return fmt(bytes) + 'B';
+    } else if (bytes < 1024 * 1024) {
+        return fmt(bytes / 1024) + 'kB';
+    } else if (bytes < 1024 * 1024 * 1024) {
+        return fmt(bytes / 1024 / 1024) + 'MB';
+    } else if (bytes < 1024 * 1024 * 1024 * 1024){
+        return fmt(bytes / 1024 / 1024 / 1024) + 'GB';
+    } else {
+        return fmt(bytes / 1024 / 1024 / 1024/1024) + 'TB';
+    }
+}
+
+   var json_SWT2_CPB_DATADISK=JSON.parse({{ json_SWT2_CPB_DATADISK }})
+   var json_SWT2_CPB_LOCALGROUPDISK=JSON.parse({{ json_SWT2_CPB_LOCALGROUPDISK }})
+   var json_SWT2_CPB_SCRATCHDISK=JSON.parse({{ json_SWT2_CPB_SCRATCHDISK }})
+   var json_UTA_SWT2_DATADISK=JSON.parse({{ json_UTA_SWT2_DATADISK }})
+
+
+//*********************************************summation chart  SWT2_CPB_DATADISK****************************************************************
+// Set the dimensions of the canvas / graph
+	var margin = {top: 40, right: 30, bottom: 70, left: 80},
+	    width = 1100 - margin.left - margin.right,
+	    height = 400 - margin.top - margin.bottom;
+
+	// Parse the date / time
+	{#var parseDate = d3.timeParse("%d-%b-%Y %H:%M:%S")#}
+	var parseDate= d3.timeParse("%Y-%m-%d %H:%M:%S");
+
+
+	// Set the ranges
+	//var x = d3.scaleTime().range([0, width]);
+    var x = d3.scaleTime().range([0, width]);
+	var y = d3.scaleLinear().domain([0, json_SWT2_CPB_DATADISK]).range([height, 0]);
+	var yAxis = d3.axisLeft().scale(y).tickFormat(bytesToString).ticks(10);
+	var xAxis=d3.axisBottom(x);
+
+	// Define the line
+	var allLines = d3.line()
+        .curve(d3.curveMonotoneX)
+	    .x(function(d) { return x(parseDate(d.x)); })
+	    .y(function(d) { return y(d.y); });
+
+	// Adds the svg canvas
+	var chart = d3.select("#svg1")
+	    .append("svg") //
+	    .attr("width", width + margin.left + margin.right)
+	    .attr("height", height + margin.top + margin.bottom)
+	    .append("g")
+	    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+   chart.append("defs").append("clipPath")
+    .attr("id", "clip")
+    .append("rect")
+    .attr("width", width)
+    .attr("height", height);
+
+    var data=JSON.parse({{ list | tojson | safe }})
+
+    // Scale the range of the data
+    x.domain(d3.extent(data, function(d) { return parseDate(d.x); }));
+    y.domain([0, d3.max(data, function(d) { return d.y; })]);
+
+    // Nest the entries by symbol
+    var dataNest = d3.nest()
+        .key(function(d) {
+        	return d.source;
+        })
+        .entries(data);
+
+    // set the colour scale
+    var color = d3.scaleOrdinal(d3.schemeCategory10);
+    legendSpace = width/dataNest.length; // spacing for the legend
+
+    // Loop through each symbol / key
+    dataNest.forEach(function(d,i) {
+        //alert('Each source:'+d)
+        chart.append("path")
+            .attr("class", "line")
+            .style("stroke", function() {  return d.color = color(d.key); })
+            .attr("id", 'tag'+d.key.replace(/\s+/g, '')) // assign an ID
+            .attr("d", allLines(d.values));
+
+        // Add the Legend
+        chart.append("text")
+            .attr("x", (legendSpace/2)+i*legendSpace)  // space legend
+            .attr("y", height + (margin.bottom/2)+ 5)
+            .attr("class", "legend")    // style the legend
+            .style("fill", function() {return d.color = color(d.key); })
+            .on("click", function(){
+                // Determine if current line is visible
+                var active   = d.active ? false : true,
+                newOpacity = active ? 0 : 1;
+                // Hide or show the elements based on the ID
+                d3.select("#tag"+d.key.replace(/\s+/g, ''))
+                    .transition().duration(100)
+                    .style("opacity", newOpacity);
+                // Update whether or not the elements are active
+                d.active = active;
+                })
+            .text(d.key)
+
+    });
+
+  var g = chart.append('g')
+          .attr("class", "axis").attr("transform", "translate(0," + height + ")");
+
+  // Add the X Axis
+  g.call(d3.axisBottom(x)).selectAll("text").style("text-anchor", "middle");
+  // Add the Y Axis
+  chart.append("g").attr("class", "axis").call(yAxis);
+  chart.append("text").attr("transform", "rotate(-90)")
+   .attr("x",0 - height)
+   .attr("y",0 - margin.left)
+      .attr("dy", "3.5em")
+  .style("text-anchor", "end")
+  .text("Storage");
+//********************************************summation chart  SWT2_CPB_LOCALGROUPDISK*********************************************************
+    var x = d3.scaleTime().range([0, width]);
+	var y = d3.scaleLinear().domain([0, json_SWT2_CPB_LOCALGROUPDISK]).range([height, 0]);
+	var yAxis = d3.axisLeft().scale(y).tickFormat(bytesToString).ticks(10);
+	var xAxis=d3.axisBottom(x);
+// Define the line
+	var allLines1 = d3.line()
+        .curve(d3.curveMonotoneX)
+	    .x(function(d) { return x(parseDate(d.x)); })
+	    .y(function(d) { return y(d.y); });
+
+	// Adds the svg canvas
+	var chart1 = d3.select("#svg2")
+	    .append("svg") //
+	    .attr("width", width + margin.left + margin.right)
+	    .attr("height", height + margin.top + margin.bottom)
+	    .append("g")
+	    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+   chart1.append("defs").append("clipPath")
+    .attr("id", "clip")
+    .append("rect")
+    .attr("width", width)
+    .attr("height", height);
+
+    var data_local=JSON.parse({{ list_local | tojson | safe }})
+
+    // Scale the range of the data
+    x.domain(d3.extent(data_local, function(d) { return parseDate(d.x); }));
+    y.domain([0, d3.max(data_local, function(d) { return d.y; })]);
+
+    // Nest the entries by symbol
+    var dataNest1 = d3.nest()
+        .key(function(d) {
+        	return d.source;
+        })
+        .entries(data_local);
+
+    // set the colour scale
+    var color = d3.scaleOrdinal(d3.schemeCategory10);
+    legendSpace1 = width/dataNest1.length; // spacing for the legend
+
+    // Loop through each symbol / key
+    dataNest1.forEach(function(d,i) {
+        //alert('Each source:'+d)
+        chart1.append("path")
+            .attr("class", "line")
+            .style("stroke", function() {  return d.color = color(d.key); })
+            .attr("id", 'tag'+d.key.replace(/\s+/g, '')) // assign an ID
+            .attr("d", allLines1(d.values));
+
+        // Add the Legend
+        chart1.append("text")
+            .attr("x", (legendSpace1/2)+i*legendSpace1)  // space legend
+            .attr("y", height + (margin.bottom/2)+ 5)
+            .attr("class", "legend")    // style the legend
+            .style("fill", function() {return d.color = color(d.key); })
+            .on("click", function(){
+                // Determine if current line is visible
+                var active   = d.active ? false : true,
+                newOpacity = active ? 0 : 1;
+                // Hide or show the elements based on the ID
+                d3.select("#tag"+d.key.replace(/\s+/g, ''))
+                    .transition().duration(100)
+                    .style("opacity", newOpacity);
+                // Update whether or not the elements are active
+                d.active = active;
+                })
+            .text(d.key)
+
+    });
+
+  var g = chart1.append('g')
+          .attr("class", "axis").attr("transform", "translate(0," + height + ")");
+
+  // Add the X Axis
+  g.call(d3.axisBottom(x)).selectAll("text").style("text-anchor", "middle");
+  // Add the Y Axis
+  chart1.append("g").attr("class", "axis").call(yAxis);
+  chart1.append("text").attr("transform", "rotate(-90)")
+   .attr("x",0 - height)
+   .attr("y",0 - margin.left)
+      .attr("dy", "3.5em")
+  .style("text-anchor", "end")
+  .text("Storage");
+//********************************************summation chart  SWT2_CPB_SCRATCHDISK*********************************************************
+    var x = d3.scaleTime().range([0, width]);
+	var y = d3.scaleLinear().domain([0, json_SWT2_CPB_SCRATCHDISK]).range([height, 0]);
+	var yAxis = d3.axisLeft().scale(y).tickFormat(bytesToString).ticks(10);
+	var xAxis=d3.axisBottom(x);
+// Define the line
+	var allLines2 = d3.line()
+        .curve(d3.curveMonotoneX)
+	    .x(function(d) { return x(parseDate(d.x)); })
+	    .y(function(d) { return y(d.y); });
+
+	// Adds the svg canvas
+	var chart2 = d3.select("#svg3")
+	    .append("svg") //
+	    .attr("width", width + margin.left + margin.right)
+	    .attr("height", height + margin.top + margin.bottom)
+	    .append("g")
+	    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+   chart2.append("defs").append("clipPath")
+    .attr("id", "clip")
+    .append("rect")
+    .attr("width", width)
+    .attr("height", height);
+
+    var data_scratch=JSON.parse({{ list_scratch | tojson | safe }})
+
+    // Scale the range of the data
+    x.domain(d3.extent(data_scratch, function(d) { return parseDate(d.x); }));
+    y.domain([0, d3.max(data_scratch, function(d) { return d.y; })]);
+
+    // Nest the entries by symbol
+    var dataNest2 = d3.nest()
+        .key(function(d) {
+        	return d.source;
+        })
+        .entries(data_scratch);
+
+    // set the colour scale
+    var color = d3.scaleOrdinal(d3.schemeCategory10);
+    legendSpace2 = width/dataNest2.length; // spacing for the legend
+
+    // Loop through each symbol / key
+    dataNest2.forEach(function(d,i) {
+        //alert('Each source:'+d)
+        chart2.append("path")
+            .attr("class", "line")
+            .style("stroke", function() {  return d.color = color(d.key); })
+            .attr("id", 'tag'+d.key.replace(/\s+/g, '')) // assign an ID
+            .attr("d", allLines2(d.values));
+
+        // Add the Legend
+        chart2.append("text")
+            .attr("x", (legendSpace2/2)+i*legendSpace2)  // space legend
+            .attr("y", height + (margin.bottom/2)+ 5)
+            .attr("class", "legend")    // style the legend
+            .style("fill", function() {return d.color = color(d.key); })
+            .on("click", function(){
+                // Determine if current line is visible
+                var active   = d.active ? false : true,
+                newOpacity = active ? 0 : 1;
+                // Hide or show the elements based on the ID
+                d3.select("#tag"+d.key.replace(/\s+/g, ''))
+                    .transition().duration(100)
+                    .style("opacity", newOpacity);
+                // Update whether or not the elements are active
+                d.active = active;
+                })
+            .text(d.key)
+
+    });
+
+  var g = chart2.append('g')
+          .attr("class", "axis").attr("transform", "translate(0," + height + ")");
+
+  // Add the X Axis
+  g.call(d3.axisBottom(x)).selectAll("text").style("text-anchor", "middle");
+  // Add the Y Axis
+  chart2.append("g").attr("class", "axis").call(yAxis);
+  chart2.append("text").attr("transform", "rotate(-90)")
+   .attr("x",0 - height)
+   .attr("y",0 - margin.left)
+      .attr("dy", "3.5em")
+  .style("text-anchor", "end")
+  .text("Storage");
+
+//********************************************summation chart  UTA_SWT2_DATADISK*********************************************************
+    var x = d3.scaleTime().range([0, width]);
+	var y = d3.scaleLinear().domain([0, json_UTA_SWT2_DATADISK]).range([height, 0]);
+	var yAxis = d3.axisLeft().scale(y).tickFormat(bytesToString).ticks(10);
+	var xAxis=d3.axisBottom(x);
+// Define the line
+	var allLines3 = d3.line()
+        .curve(d3.curveMonotoneX)
+	    .x(function(d) { return x(parseDate(d.x)); })
+	    .y(function(d) { return y(d.y); });
+
+	// Adds the svg canvas
+	var chart3 = d3.select("#svg4")
+	    .append("svg") //
+	    .attr("width", width + margin.left + margin.right)
+	    .attr("height", height + margin.top + margin.bottom)
+	    .append("g")
+	    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+   chart3.append("defs").append("clipPath")
+    .attr("id", "clip")
+    .append("rect")
+    .attr("width", width)
+    .attr("height", height);
+
+    var data_uta=JSON.parse({{ uta_data | tojson | safe }})
+
+    // Scale the range of the data
+    x.domain(d3.extent(data_uta, function(d) { return parseDate(d.x); }));
+    y.domain([0, d3.max(data_uta, function(d) { return d.y; })]);
+
+    // Nest the entries by symbol
+    var dataNest3 = d3.nest()
+        .key(function(d) {
+        	return d.source;
+        })
+        .entries(data_scratch);
+
+    // set the colour scale
+    var color = d3.scaleOrdinal(d3.schemeCategory10);
+    legendSpace3 = width/dataNest3.length; // spacing for the legend
+
+    // Loop through each symbol / key
+    dataNest3.forEach(function(d,i) {
+        //alert('Each source:'+d)
+        chart3.append("path")
+            .attr("class", "line")
+            .style("stroke", function() {  return d.color = color(d.key); })
+            .attr("id", 'tag'+d.key.replace(/\s+/g, '')) // assign an ID
+            .attr("d", allLines3(d.values));
+
+        // Add the Legend
+        chart3.append("text")
+            .attr("x", (legendSpace3/2)+i*legendSpace3)  // space legend
+            .attr("y", height + (margin.bottom/2)+ 5)
+            .attr("class", "legend")    // style the legend
+            .style("fill", function() {return d.color = color(d.key); })
+            .on("click", function(){
+                // Determine if current line is visible
+                var active   = d.active ? false : true,
+                newOpacity = active ? 0 : 1;
+                // Hide or show the elements based on the ID
+                d3.select("#tag"+d.key.replace(/\s+/g, ''))
+                    .transition().duration(100)
+                    .style("opacity", newOpacity);
+                // Update whether or not the elements are active
+                d.active = active;
+                })
+            .text(d.key)
+
+    });
+
+  var g = chart3.append('g')
+          .attr("class", "axis").attr("transform", "translate(0," + height + ")");
+
+  // Add the X Axis
+  g.call(d3.axisBottom(x)).selectAll("text").style("text-anchor", "middle");
+  // Add the Y Axis
+  chart3.append("g").attr("class", "axis").call(yAxis);
+  chart3.append("text").attr("transform", "rotate(-90)")
+   .attr("x",0 - height)
+   .attr("y",0 - margin.left)
+      .attr("dy", "3.5em")
+  .style("text-anchor", "end")
+  .text("Storage");
+
+
+
+</script>
+</div>
+</body>
+</html>

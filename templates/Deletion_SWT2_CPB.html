@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Deletion Dashboard</title>
+<style> /* set the CSS */
+
+body { font: 12px Arial;}
+path {
+    stroke: steelblue;
+    stroke-width: 2px;
+    fill: none;
+}
+
+.axis path,
+.axis line {
+    fill: none;
+    stroke: grey;
+    stroke-width: 1px;
+    shape-rendering: crispEdges;
+}
+
+div.tooltip {
+    position: absolute;
+    text-align: center;
+    width: 100px;
+    height: 40px;
+    padding: 2px;
+    font: 12px sans-serif;
+    background: lightsteelblue;
+    border: 0px;
+    border-radius: 8px;
+}
+
+a:link {
+    color: black;
+    background-color: transparent;
+    text-decoration: none;
+}
+
+a:visited {
+    color: #1181B8;
+    background-color: transparent;
+    text-decoration: none;
+}
+
+a:hover {
+    color: red;
+    background-color: transparent;
+    text-decoration: underline;
+}
+
+a:active {
+    color: yellow;
+    background-color: transparent;
+    text-decoration: underline;
+}
+
+.label {
+    background-color: lightblue;
+    color: black;
+    padding: 10px;
+}
+
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 2px;
+  clip-path: url(#clip);
+}
+
+
+
+</style>
+
+</head>
+<body>
+<h2 class="label">Deletions Dashboard SWT2 CPB</h2>
+<ul>
+<span><a href="{{url_for('index')}}">Index</a></span>
+</ul>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+	<table border="2" >
+        <tr>
+            <td colspan="3" bordercolor="green" align="center"  title="Storage Charts">
+				<div id="linechart4">
+					<svg id="svg4" height="400" width="1200"></svg>
+				</div>
+			</td>
+        </tr>
+		<tr>
+			<td colspan="1" bordercolor="green" align="center"  title="Storage Charts">
+                <h4><a href="{{url_for('DeletionPlannedBytes_swt2cpb')}}">Planned Bytes</a></h4>
+				<div id="linechart1">
+					<svg id="svg1" height="300"></svg>
+				</div>
+			</td>
+			<td  colspan="1" bordercolor="green" align="center"  title="Storage Charts">
+                <h4><a href="{{url_for('DeletionFailedBytes_swt2cpb')}}">Failed Bytes</a></h4>
+				<div id="linechart2">
+					<svg id="svg2"></svg>
+				</div>
+			</td>
+            <td  colspan="1" bordercolor="green" align="center"  title="Storage Charts">
+                <h4><a href="{{url_for('DeletionDoneBytes_swt2cpb')}}">Done Bytes</a></h4>
+				<div id="linechart3">
+					<svg id="svg3"></svg>
+				</div>
+			</td>
+        </tr>
+        <tr>
+            <td  colspan="1" bordercolor="green" align="center"  title="Storage Charts">
+                <h4><a href="{{url_for('DeletionPlannedFiles_swt2cpb')}}">Planned Files</a></h4>
+				<div id="linechart5">
+					<svg id="svg5"></svg>
+				</div>
+			</td>
+            <td  colspan="1" bordercolor="green" align="center"  title="Storage Charts">
+                <h4><a href="{{url_for('DeletionFailedFiles_swt2cpb')}}">Failed Files</a></h4>
+				<div id="linechart6">
+					<svg id="svg6"></svg>
+				</div>
+			</td>
+            <td  colspan="1" bordercolor="green" align="center"  title="Storage Charts">
+                <h4><a href="{{url_for('DeletionDoneFiles_swt2cpb')}}">Done Files</a></h4>
+				<div id="linechart7">
+					<svg id="svg7"></svg>
+				</div>
+			</td>
+        </tr>
+	</table>
+
+	<script>
+
+var bytesToString = function (bytes) {
+    var fmt = d3.format('.0f');
+    if (bytes < 1024) {
+        return fmt(bytes) + 'B';
+    } else if (bytes < 1024 * 1024) {
+        return fmt(bytes / 1024) + 'kB';
+    } else if (bytes < 1024 * 1024 * 1024) {
+        return fmt(bytes / 1024 / 1024) + 'MB';
+    } else if (bytes < 1024 * 1024 * 1024 * 1024){
+        return fmt(bytes / 1024 / 1024 / 1024) + 'GB';
+    } else {
+        return fmt(bytes / 1024 / 1024 / 1024/1024) + 'TB';
+    }
+}
+
+// [********************************************Start Chart 4 : Summation Chart***************************************************************]
+
+var margin = {top: 40, right: 30, bottom: 70, left: 80},
+    width = 1100 - margin.left - margin.right,
+    height = 400 - margin.top - margin.bottom;
+
+var parseDate= d3.timeParse("%Y-%m-%d %H:%M:%S");
+
+// Set the ranges
+var x = d3.scaleTime().range([0, width]);
+var y = d3.scaleLinear().domain([0, 5000000000000000]).range([height, 0]);
+var yAxis = d3.axisLeft().scale(y).ticks(10);
+var xAxis=d3.axisBottom(x);
+
+// Define the line
+var allLines = d3.line()
+        .curve(d3.curveMonotoneX)
+	    .x(function(d) { return x(parseDate(d.x)); })
+	    .y(function(d) { return y(d.y); });
+
+// Adds the svg canvas
+var chart4 = d3.select("#svg4")
+.append("svg")
+	    .attr("width", width + margin.left + margin.right)
+	    .attr("height", height + margin.top + margin.bottom)
+	    .append("g")
+	    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+chart4.append("defs").append("clipPath")
+    .attr("id", "clip")
+    .append("rect")
+    .attr("width", width)
+    .attr("height", height);
+
+var data=JSON.parse({{ list | tojson | safe }})
+
+// Scale the range of the data
+x.domain(d3.extent(data, function(d) { return parseDate(d.x); }));
+y.domain([0, d3.max(data, function(d) { return d.y; })]);
+
+
+
+// Nest the entries by symbol
+var dataNest = d3.nest()
+        .key(function(d) {
+        	return d.source;
+        })
+        .entries(data);
+
+var color = d3.scaleOrdinal(d3.schemeCategory10);
+    legendSpace = width/dataNest.length; // spacing for the legend
+
+// Loop through each symbol / key
+dataNest.forEach(function(d,i) {
+        chart4.append("path")
+            .attr("class", "line")
+            .style("stroke", function() {  return d.color = color(d.key); })
+            .attr("id", 'tag'+d.key.replace(/\s+/g, '')) // assign an ID
+            .attr("d", allLines(d.values));
+
+        // Add the Legend
+        chart4.append("text")
+            .attr("x", (legendSpace/2)+i*legendSpace)  // space legend
+            .attr("y", height + (margin.bottom/2)+ 5)
+            .attr("class", "legend")    // style the legend
+            .style("fill", function() {return d.color = color(d.key); })
+            .on("click", function(){
+                // Determine if current line is visible
+                var active   = d.active ? false : true,
+                newOpacity = active ? 0 : 1;
+                // Hide or show the elements based on the ID
+                d3.select("#tag"+d.key.replace(/\s+/g, ''))
+                    .transition().duration(100)
+                    .style("opacity", newOpacity);
+                // Update whether or not the elements are active
+                d.active = active;
+                })
+            .text(d.key)
+
+});
+
+var g = chart4.append('g')
+          .attr("class", "axis").attr("transform", "translate(0," + height + ")");
+
+// Add the X Axis
+g.call(d3.axisBottom(x)).selectAll("text").style("text-anchor", "middle");
+// Add the Y Axis
+chart4.append("g").attr("class", "axis").call(yAxis);
+chart4.append("text").attr("transform", "rotate(-90)")
+   .attr("x",0 - height)
+   .attr("y",0 - margin.left)
+      .attr("dy", "3.5em")
+  .style("text-anchor", "end")
+  .text("Storage");
+
+
+
+
+{###########################################################################################################################################}
+
+var margin = {top: 30, right: 20, bottom: 50, left: 50},
+width = (window.innerWidth/3 - 25) - margin.left - margin.right,
+height = (window.innerHeight/3) - margin.top - margin.bottom;
+var x = d3.scaleTime().range([0, width]);
+var y = d3.scaleLinear().domain([0, 5000000000000000]).range([height, 0]);
+var xAxis = d3.axisBottom().scale(x).ticks(5);
+var yAxis = d3.axisLeft().scale(y).tickFormat(bytesToString).ticks(5);
+var parseDate = d3.timeParse("%Y-%m-%d %H:%M:%S");
+
+
+
+//********************************************Strats chart 1 ***************************************************************]
+
+var planned_bytes=JSON.parse({{ planned_bytes | tojson | safe }})
+var chart1 = d3.select("#svg1")
+.attr("width", width + margin.left + margin.right)
+.attr("height", height + margin.top + margin.bottom)
+.append("g")
+.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+
+var valueline1 = d3.line()
+.curve(d3.curveMonotoneX)
+.x(function (d) {
+	return x(parseDate(d.x));
+})
+.y(function (d) { return y(d.y);
+});
+
+
+
+// Scale the range of the data
+x.domain(d3.extent(planned_bytes,function (d) {
+        return parseDate(d.x);
+ }));
+y.domain([0, d3.max(planned_bytes, function(d) { return d.y; })]);
+
+{#y.domain([ 0, d3.max(planned_bytes,function (d) {
+            return d.y;
+    })
+ ]);#}
+ //Adding data into Line-chart
+chart1.append("path").attr("class", "line").attr("d", valueline1(planned_bytes));
+ //Adding A Axis
+chart1.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%d-%b-%y")))
+    .selectAll("text")
+    .style("text-anchor", "end")
+    .attr("transform", "rotate(-90)");
+//Adding A Axis Label
+chart1.append("text").attr("transform", "rotate(0)")
+.attr("x",	250)
+.attr("y",  height)
+.style("text-anchor", "middle")
+.attr("dx", "7em")
+.text("Time");
+// Adding Y-asix
+chart1.append("g").attr("class", "y axis").call(yAxis);
+chart1.append("text").attr("transform", "rotate(-90)")
+.attr("x",	-180)
+.attr("y",  -75)
+    .attr("dy", "3.5em")
+.style("text-anchor", "middle")
+.text("Planned");
+
+//Adding tooltip
+var div = d3.select("body").append("div").attr("class", "tooltip").style("opacity", 0);
+ // Add the scatterplot
+chart1.selectAll("dot")
+	.data(planned_bytes)
+	.enter()
+	.append("circle")
+	.attr("r", 5)
+	.attr("cx", function(d) { return x(parseDate(d.x)); })
+	.attr("cy", function(d) { return y(d.y); })
+	.on("mouseover", function(d) {
+	        div.transition().duration(250).style("opacity", .9);
+	        div	.html('Date:'+d.x+ "<br/> Storage:"  + bytesToString(d.y))
+	        .style("left", (d3.event.pageX) + "px")
+	        .style("top", (d3.event.pageY - 28) + "px");
+	 })
+	 .on("mouseout", function(d) {
+	        //div.transition().duration(2500) .style("opacity", 0);
+	  });
+
+
+// [********************************************Strats Chart 2 ***************************************************************]
+
+var failed_bytes=JSON.parse({{ failed_bytes | tojson | safe }})
+var chart2 = d3.select("#svg2")
+.attr("width", width + margin.left + margin.right)
+.attr("height", height + margin.top + margin.bottom)
+.append("g")
+.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+var valueline2 = d3.line()
+.curve(d3.curveMonotoneX)
+.x(function (d) {
+	return x(parseDate(d.x));
+})
+.y(function (d) { return y(d.y);
+});
+
+// Scale the range of the data
+x.domain(d3.extent(failed_bytes,function (d) {
+        return parseDate(d.x);
+ }));
+
+y.domain([ 0, d3.max(failed_bytes,function (d) {
+            return d.y;
+    })
+ ]);
+ //Adding data into Line-chart
+chart2.append("path").attr("class", "line").attr("d", valueline2(failed_bytes));
+ //Adding A Axis
+chart2.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%d-%b-%y")))
+    .selectAll("text")
+    .style("text-anchor", "end")
+    .attr("transform", "rotate(-90)");
+//Adding A Axis Label
+chart2.append("text").attr("transform", "rotate(0)")
+.attr("x",	250)
+.attr("y",  height)
+.style("text-anchor", "middle")
+.attr("dx", "7em")
+.text("Time");
+// Adding Y-asix
+chart2.append("g").attr("class", "y axis").call(yAxis);
+chart2.append("text").attr("transform", "rotate(-90)")
+.attr("x",	-180)
+.attr("y",  -75)
+    .attr("dy", "3.5em")
+.style("text-anchor", "middle")
+.text("Failed");
+
+//Adding tooltip
+var div = d3.select("body").append("div").attr("class", "tooltip").style("opacity", 0);
+ // Add the scatterplot
+chart2.selectAll("dot")
+	.data(failed_bytes)
+	.enter()
+	.append("circle")
+	.attr("r", 5)
+	.attr("cx", function(d) { return x(parseDate(d.x)); })
+	.attr("cy", function(d) { return y(d.y); })
+	.on("mouseover", function(d) {
+	        div.transition().duration(250).style("opacity", .9);
+	        div	.html('Date:'+d.x+ "<br/> Storage:"  + bytesToString(d.y))
+	        .style("left", (d3.event.pageX) + "px")
+	        .style("top", (d3.event.pageY - 28) + "px");
+	 })
+	 .on("mouseout", function(d) {
+	        //div.transition().duration(2500) .style("opacity", 0);
+	  });
+
+
+// [********************************************Start Chart 3 ***************************************************************]
+
+var done_bytes=JSON.parse({{ done_bytes | tojson | safe }})
+var parseDate = d3.timeParse("%Y-%m-%d %H:%M:%S");
+var chart3 = d3.select("#svg3")
+.attr("width", width + margin.left + margin.right)
+.attr("height", height + margin.top + margin.bottom)
+.append("g")
+.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+var valueline3 = d3.line()
+.curve(d3.curveMonotoneX)
+.x(function (d) {
+	return x(parseDate(d.x));
+})
+.y(function (d) { return y(d.y);
+});
+
+// Scale the range of the data
+x.domain(d3.extent(done_bytes,function (d) {
+        return parseDate(d.x);
+ }));
+y.domain([ 0, d3.max(done_bytes,function (d) {
+            return d.y;
+    })
+ ]);
+ //Adding data into Line-chart
+chart3.append("path").attr("class", "line").attr("d", valueline3(done_bytes));
+ //Adding A Axis
+chart3.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%d-%b-%y")))
+    .selectAll("text")
+    .style("text-anchor", "end")
+    .attr("transform", "rotate(-90)");
+//Adding A Axis Label
+chart3.append("text").attr("transform", "rotate(0)")
+.attr("x",	250)
+.attr("y",  height)
+.style("text-anchor", "middle")
+.attr("dx", "7em")
+.text("Time");
+// Adding Y-asix
+chart3.append("g").attr("class", "y axis").call(yAxis);
+chart3.append("text").attr("transform", "rotate(-90)")
+.attr("x",	-180)
+.attr("y",  -75)
+    .attr("dy", "3.5em")
+.style("text-anchor", "middle")
+.text("Done");
+
+//Adding tooltip
+// var div = d3.select("body").append("div").attr("class", "tooltip").style("opacity", 0);
+ // Add the scatterplot
+chart3.selectAll("dot")
+	.data(done_bytes)
+	.enter()
+	.append("circle")
+	.attr("r", 5)
+	.attr("cx", function(d) { return x(parseDate(d.x)); })
+	.attr("cy", function(d) { return y(d.y); })
+	.on("mouseover", function(d) {
+	        div.transition().duration(250).style("opacity", .9);
+	        div	.html('Date:'+d.x+ "<br/> Storage:"  + bytesToString(d.y))
+	        .style("left", (d3.event.pageX) + "px")
+	        .style("top", (d3.event.pageY - 28) + "px");
+	 })
+	 .on("mouseout", function(d) {
+	        //div.transition().duration(2500) .style("opacity", 0);
+	  });
+
+//********************************************Strats chart 5 ***************************************************************]
+var yAxis = d3.axisLeft().scale(y).ticks(5);
+var planned_files=JSON.parse({{ planned_files | tojson | safe }})
+var chart5 = d3.select("#svg5")
+.attr("width", width + margin.left + margin.right)
+.attr("height", height + margin.top + margin.bottom)
+.append("g")
+.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+
+var valueline5 = d3.line()
+.curve(d3.curveMonotoneX)
+.x(function (d) {
+	return x(parseDate(d.x));
+})
+.y(function (d) { return y(d.y);
+});
+
+
+
+// Scale the range of the data
+x.domain(d3.extent(planned_files,function (d) {
+        return parseDate(d.x);
+ }));
+y.domain([0, d3.max(planned_files, function(d) { return d.y; })]);
+
+{#y.domain([ 0, d3.max(planned_bytes,function (d) {
+            return d.y;
+    })
+ ]);#}
+ //Adding data into Line-chart
+chart5.append("path").attr("class", "line").attr("d", valueline5(planned_files));
+ //Adding A Axis
+chart5.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%d-%b-%y")))
+    .selectAll("text")
+    .style("text-anchor", "end")
+    .attr("transform", "rotate(-90)");
+//Adding A Axis Label
+chart5.append("text").attr("transform", "rotate(0)")
+.attr("x",	250)
+.attr("y",  height)
+.style("text-anchor", "middle")
+.attr("dx", "7em")
+.text("Time");
+// Adding Y-asix
+chart5.append("g").attr("class", "y axis").call(yAxis);
+chart5.append("text").attr("transform", "rotate(-90)")
+.attr("x",	-180)
+.attr("y",  -75)
+    .attr("dy", "3.5em")
+.style("text-anchor", "middle")
+.text("PlannedFiles");
+
+//Adding tooltip
+var div = d3.select("body").append("div").attr("class", "tooltip").style("opacity", 0);
+ // Add the scatterplot
+chart5.selectAll("dot")
+	.data(planned_files)
+	.enter()
+	.append("circle")
+	.attr("r", 5)
+	.attr("cx", function(d) { return x(parseDate(d.x)); })
+	.attr("cy", function(d) { return y(d.y); })
+	.on("mouseover", function(d) {
+	        div.transition().duration(250).style("opacity", .9);
+	        div	.html('Date:'+d.x+ "<br/> Files:"  + d.y)
+	        .style("left", (d3.event.pageX) + "px")
+	        .style("top", (d3.event.pageY - 28) + "px");
+	 })
+	 .on("mouseout", function(d) {
+	        //div.transition().duration(2500) .style("opacity", 0);
+	  });
+
+
+// [********************************************Strats Chart 6 ***************************************************************]
+
+var failed_files=JSON.parse({{ failed_files | tojson | safe }})
+var chart6 = d3.select("#svg6")
+.attr("width", width + margin.left + margin.right)
+.attr("height", height + margin.top + margin.bottom)
+.append("g")
+.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+var valueline6 = d3.line()
+.curve(d3.curveMonotoneX)
+.x(function (d) {
+	return x(parseDate(d.x));
+})
+.y(function (d) { return y(d.y);
+});
+
+// Scale the range of the data
+x.domain(d3.extent(failed_files,function (d) {
+        return parseDate(d.x);
+ }));
+
+y.domain([ 0, d3.max(failed_files,function (d) {
+            return d.y;
+    })
+ ]);
+ //Adding data into Line-chart
+chart6.append("path").attr("class", "line").attr("d", valueline6(failed_files));
+ //Adding A Axis
+chart6.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%d-%b-%y")))
+    .selectAll("text")
+    .style("text-anchor", "end")
+    .attr("transform", "rotate(-90)");
+//Adding A Axis Label
+chart6.append("text").attr("transform", "rotate(0)")
+.attr("x",	250)
+.attr("y",  height)
+.style("text-anchor", "middle")
+.attr("dx", "7em")
+.text("Time");
+// Adding Y-asix
+chart6.append("g").attr("class", "y axis").call(yAxis);
+chart6.append("text").attr("transform", "rotate(-90)")
+.attr("x",	-180)
+.attr("y",  -75)
+    .attr("dy", "3.5em")
+.style("text-anchor", "middle")
+.text("FailedFiles");
+
+//Adding tooltip
+var div = d3.select("body").append("div").attr("class", "tooltip").style("opacity", 0);
+ // Add the scatterplot
+chart6.selectAll("dot")
+	.data(failed_files)
+	.enter()
+	.append("circle")
+	.attr("r", 5)
+	.attr("cx", function(d) { return x(parseDate(d.x)); })
+	.attr("cy", function(d) { return y(d.y); })
+	.on("mouseover", function(d) {
+	        div.transition().duration(250).style("opacity", .9);
+	        div	.html('Date:'+d.x+ "<br/> Files:"  + d.y)
+	        .style("left", (d3.event.pageX) + "px")
+	        .style("top", (d3.event.pageY - 28) + "px");
+	 })
+	 .on("mouseout", function(d) {
+	        //div.transition().duration(2500) .style("opacity", 0);
+	  });
+
+
+// [********************************************Start Chart 7 ***************************************************************]
+
+var done_files=JSON.parse({{ done_files | tojson | safe }})
+var parseDate = d3.timeParse("%Y-%m-%d %H:%M:%S");
+var chart7 = d3.select("#svg7")
+.attr("width", width + margin.left + margin.right)
+.attr("height", height + margin.top + margin.bottom)
+.append("g")
+.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+var valueline7 = d3.line()
+.curve(d3.curveMonotoneX)
+.x(function (d) {
+	return x(parseDate(d.x));
+})
+.y(function (d) { return y(d.y);
+});
+
+// Scale the range of the data
+x.domain(d3.extent(done_files,function (d) {
+        return parseDate(d.x);
+ }));
+
+y.domain([ 0, d3.max(done_files,function (d) {
+            return d.y;
+    })
+ ]);
+ //Adding data into Line-chart
+chart7.append("path").attr("class", "line").attr("d", valueline3(done_files));
+ //Adding A Axis
+chart7.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%d-%b-%y")))
+    .selectAll("text")
+    .style("text-anchor", "end")
+    .attr("transform", "rotate(-90)");
+//Adding A Axis Label
+chart7.append("text").attr("transform", "rotate(0)")
+.attr("x",	250)
+.attr("y",  height)
+.style("text-anchor", "middle")
+.attr("dx", "7em")
+.text("Time");
+// Adding Y-asix
+chart7.append("g").attr("class", "y axis").call(yAxis);
+chart7.append("text").attr("transform", "rotate(-90)")
+.attr("x",	-180)
+.attr("y",  -75)
+    .attr("dy", "3.5em")
+.style("text-anchor", "middle")
+.text("DoneFiles");
+
+//Adding tooltip
+// var div = d3.select("body").append("div").attr("class", "tooltip").style("opacity", 0);
+ // Add the scatterplot
+chart7.selectAll("dot")
+	.data(done_files)
+	.enter()
+	.append("circle")
+	.attr("r", 5)
+	.attr("cx", function(d) { return x(parseDate(d.x)); })
+	.attr("cy", function(d) { return y(d.y); })
+	.on("mouseover", function(d) {
+	        div.transition().duration(250).style("opacity", .9);
+	        div	.html('Date:'+d.x+ "<br/> Files:"  + d.y)
+	        .style("left", (d3.event.pageX) + "px")
+	        .style("top", (d3.event.pageY - 28) + "px");
+	 })
+	 .on("mouseout", function(d) {
+	        //div.transition().duration(2500) .style("opacity", 0);
+	  });
+
+</script>
+</body>
+</html>

@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+body {
+  background-color: white;
+}
+.axis {
+	font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #D4D8DA;
+  stroke-width: 2px;
+  shape-rendering: crispEdges;
+}
+
+.line {
+  fill: none;
+  stroke: #6F257F;
+  stroke-width: 5px;
+}
+
+.overlay {
+  fill: none;
+  pointer-events: all;
+}
+
+.focus circle {
+  fill: #F1F3F3;
+  stroke: #6F257F;
+  stroke-width: 5px;
+}
+
+
+
+.hover-line {
+  stroke: #6F257F;
+  stroke-width: 2px;
+  stroke-dasharray: 3,3;
+}
+
+.area {
+  fill: steelblue;
+  clip-path: url(#clip);
+}
+
+.label {
+    background-color: lightblue;
+    color: black;
+    padding: 10px;
+}
+
+div.tooltip {
+    position: absolute;
+    text-align: center;
+    width: 100px;
+    height: 40px;
+    padding: 2px;
+    font: 12px sans-serif;
+    background: lightsteelblue;
+    border: 0px;
+    border-radius: 8px;
+}
+</style>
+<body>
+<h2 class="label">Transfer Chart between {{a}} and {{b}}</h2>
+
+<script src="https://d3js.org/d3.v4.min.js"></script>
+    <table border="2" width="100%">
+        <tr>
+            <td colspan="3" height="500" bordercolor="green" align="center"  title="Storage Charts">
+                <h3>Transfer Failure</h3>
+				<div id="linechart1">
+					<svg id="svg1" height="400" width="600"></svg>
+				</div>
+			</td>
+        <tr>
+        <tr>
+            <td colspan="3" height="500" bordercolor="green" align="center"  title="Storage Charts">
+                <h3>Transfer Success</h3>
+				<div id="linechart2">
+					<svg id="svg2" height="400" width="600"></svg>
+				</div>
+			</td>
+        <tr>
+        <tr>
+            <td colspan="3" height="500" bordercolor="green" align="center"  title="Storage Charts">
+                <h3>Error Percent</h3>
+				<div id="linechart3">
+					<svg id="svg3" height="400" width="600"></svg>
+				</div>
+			</td>
+        <tr>
+        <tr>
+            <td colspan="3" height="500" bordercolor="green" align="center"  title="Storage Charts">
+                <h3> Transfer Bytes</h3>
+				<div id="linechart4">
+					<svg id="svg4" height="400" width="600"></svg>
+				</div>
+			</td>
+        <tr>
+	</table>
+<script>
+
+var bytesToString = function (bytes) {
+    var fmt = d3.format('.0f');
+    if (bytes < 1024) {
+        return fmt(bytes) + 'B';
+    } else if (bytes < 1024 * 1024) {
+        return fmt(bytes / 1024) + 'kB';
+    } else if (bytes < 1024 * 1024 * 1024) {
+        return fmt(bytes / 1024 / 1024) + 'MB';
+    } else if (bytes < 1024 * 1024 * 1024 * 1024){
+        return fmt(bytes / 1024 / 1024 / 1024) + 'GB';
+    } else {
+        return fmt(bytes / 1024 / 1024 / 1024/1024) + 'TB';
+    }
+}
+
+var margin = {top: 30, right: 20, bottom: 50, left: 50},
+    width = (window.innerWidth*0.8) - margin.left - margin.right,
+    height = (window.innerWidth*0.4) - margin.top - margin.bottom;
+
+var parseDate = d3.timeParse("%Y-%m-%d %H:%M:%S");
+formatDate = d3.timeFormat("%Y-%m-%d %H:%M:%S");
+bisectDate = d3.bisector(function(d) { return parseDate(d.x); }).left;
+
+//###############################################Transfer Failure############################################################################
+
+
+
+
+chart3=JSON.parse({{ chart3 | tojson | safe }});
+
+var svg = d3.select("#svg1")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+//div
+var div = d3.select("body").append("div").attr("class", "tooltip").style("opacity", 0);
+
+var x = d3.scaleTime().range([0, width]);
+var y = d3.scaleLinear().domain([0, 100]).range([height, 0]).nice();
+
+var line3 = d3.line()
+    .x(function (d) { return x(parseDate(d.x)); })
+    .y(function (d) { return y(d.y); });
+
+var g = svg.append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+x.domain(d3.extent(chart3,function (d) { return parseDate(d.x); })).nice();
+
+y.domain([d3.min(chart3, function(d) { return d.y; }), d3.max(chart3, function(d) { return d.y; })]);
+
+svg.append("g")
+    .attr("class", "axis axis--x")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x));
+
+svg.append("g")
+    .attr("class", "axis axis--y")
+    .call(d3.axisLeft(y).ticks(6))
+    .append("text")
+    .attr("class", "axis-title")
+    .attr("transform", "rotate(-90)")
+    .attr("y", 6)
+    .attr("dy", ".71em")
+    .style("text-anchor", "end")
+    .attr("fill", "#5D6971")
+    .text("(Files)");
+
+svg.append("path")
+    .datum(chart3)
+    .attr("class", "line")
+    .attr("d", line3);
+
+var focus = svg.append("g")
+    .attr("class", "focus")
+    .style("display", "none");
+
+focus.append("line3")
+    .attr("class", "x-hover-line hover-line")
+    .attr("y1", 0)
+    .attr("y2", height);
+
+focus.append("line3")
+    .attr("class", "y-hover-line hover-line")
+    .attr("x1", width)
+    .attr("x2", width);
+
+focus.append("circle")
+    .attr("r", 7.5);
+
+focus.append("text")
+    .attr("x", 15)
+    .attr("dy", ".31em");
+
+svg.append("rect")
+    //.attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+    .attr("class", "overlay")
+    .attr("width", width)
+    .attr("height", height)
+    //.on("mouseover", function() { focus1.style("display", null); })
+    //.on("mouseout", function() { focus1.style("display", "none"); })
+    .on("mouseover", function() { focus.style("display", null);})
+    .on("mouseout", function() { focus.style("display", "none");div.transition().style("opacity", 0);})//div
+    .on("mousemove", mousemove2);
+
+function mousemove2() {
+    var x0 = x.invert(d3.mouse(this)[0]),
+        i = bisectDate(chart3, x0, 1),
+        d0 = chart3[i - 1],
+        d1 = chart3[i],
+        d = x0 - parseDate(d0.x) > parseDate(d1.x) - x0 ? d1 : d0;
+    focus.attr("transform", "translate(" + x(parseDate(d.x)) + "," + y(d.y) + ")");
+    //focus.select("text").text(function() { return "Failed Files:"+d.y+"  Date:"+formatDate(parseDate(d.x));})
+    focus.select(".x-hover-line").attr("y2", height - y(d.y));
+    focus.select(".y-hover-line").attr("x2", width + width);
+    div.transition().duration(50).style("opacity", .9);
+	        div	.html('Failed Files: '+ d.y + "<br/> Time: "  + d3.timeFormat(d.x,"%d-%b-%y"))
+	        .style("left", (d3.event.pageX + 20) + "px")
+	        .style("top", (d3.event.pageY - 20) + "px");
+}
+
+//###############################################Transfer Success############################################################################
+
+
+
+
+chart2=JSON.parse({{ chart2 | tojson | safe }});
+
+var svg = d3.select("#svg2")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+//div
+var div = d3.select("body").append("div").attr("class", "tooltip").style("opacity", 0);
+
+var x = d3.scaleTime().range([0, width]);
+var y = d3.scaleLinear().domain([0, 100]).range([height, 0]).nice();
+
+var line2 = d3.line()
+    .x(function (d) { return x(parseDate(d.x)); })
+    .y(function (d) { return y(d.y); });
+
+var g = svg.append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+x.domain(d3.extent(chart2,function (d) { return parseDate(d.x); })).nice();
+
+y.domain([d3.min(chart2, function(d) { return d.y; }), d3.max(chart2, function(d) { return d.y; })]);
+
+svg.append("g")
+    .attr("class", "axis axis--x")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x));
+
+svg.append("g")
+    .attr("class", "axis axis--y")
+    .call(d3.axisLeft(y).ticks(6))
+    .append("text")
+    .attr("class", "axis-title")
+    .attr("transform", "rotate(-90)")
+    .attr("y", 6)
+    .attr("dy", ".71em")
+    .style("text-anchor", "end")
+    .attr("fill", "#5D6971")
+    .text("(Files)");
+
+svg.append("path")
+    .datum(chart2)
+    .attr("class", "line")
+    .attr("d", line2);
+
+var focus = svg.append("g")
+    .attr("class", "focus")
+    .style("display", "none");
+
+focus.append("line2")
+    .attr("class", "x-hover-line hover-line")
+    .attr("y1", 0)
+    .attr("y2", height);
+
+focus.append("line2")
+    .attr("class", "y-hover-line hover-line")
+    .attr("x1", width)
+    .attr("x2", width);
+
+focus.append("circle")
+    .attr("r", 7.5);
+
+focus.append("text")
+    .attr("x", 15)
+    .attr("dy", ".31em");
+
+svg.append("rect")
+    //.attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+    .attr("class", "overlay")
+    .attr("width", width)
+    .attr("height", height)
+    //.on("mouseover", function() { focus1.style("display", null); })
+    //.on("mouseout", function() { focus1.style("display", "none"); })
+    .on("mouseover", function() { focus.style("display", null);})
+    .on("mouseout", function() { focus.style("display", "none");div.transition().style("opacity", 0);})//div
+    .on("mousemove", mousemove1);
+
+function mousemove1() {
+    var x0 = x.invert(d3.mouse(this)[0]),
+        i = bisectDate(chart2, x0, 1),
+        d0 = chart2[i - 1],
+        d1 = chart2[i],
+        d = x0 - parseDate(d0.x) > parseDate(d1.x) - x0 ? d1 : d0;
+    focus.attr("transform", "translate(" + x(parseDate(d.x)) + "," + y(d.y) + ")");
+    //focus.select("text").text(function() { return "Files:"+d.y+"  Date:"+formatDate(parseDate(d.x));})
+    focus.select(".x-hover-line").attr("y2", height - y(d.y));
+    focus.select(".y-hover-line").attr("x2", width + width);
+    div.transition().duration(50).style("opacity", .9);
+	        div	.html('Files: '+ d.y + "<br/> Time: "  + d3.timeFormat(d.x,"%d-%b-%y"))
+	        .style("left", (d3.event.pageX + 20) + "px")
+	        .style("top", (d3.event.pageY - 20) + "px");
+}
+
+//###############################################Error Percent############################################################################
+
+
+
+
+chart4=JSON.parse({{ chart4 | tojson | safe }});
+
+var svg = d3.select("#svg3")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+//div
+var div = d3.select("body").append("div").attr("class", "tooltip").style("opacity", 0);
+
+var x = d3.scaleTime().range([0, width]);
+var y = d3.scaleLinear().domain([0, 100]).range([height, 0]).nice();
+
+var line4 = d3.line()
+    .x(function (d) { return x(parseDate(d.x)); })
+    .y(function (d) { return y(d.y); });
+
+var g = svg.append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+x.domain(d3.extent(chart4,function (d) { return parseDate(d.x); })).nice();
+
+y.domain([d3.min(chart4, function(d) { return d.y; }), d3.max(chart4, function(d) { return d.y; })]);
+
+svg.append("g")
+    .attr("class", "axis axis--x")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x));
+
+svg.append("g")
+    .attr("class", "axis axis--y")
+    .call(d3.axisLeft(y).ticks(6))
+    .append("text")
+    .attr("class", "axis-title")
+    .attr("transform", "rotate(-90)")
+    .attr("y", 6)
+    .attr("dy", ".71em")
+    .style("text-anchor", "end")
+    .attr("fill", "#5D6971")
+    .text("(Percentage of Failure)");
+
+svg.append("path")
+    .datum(chart4)
+    .attr("class", "line")
+    .attr("d", line4);
+
+var focus = svg.append("g")
+    .attr("class", "focus")
+    .style("display", "none");
+
+focus.append("line4")
+    .attr("class", "x-hover-line hover-line")
+    .attr("y1", 0)
+    .attr("y2", height);
+
+focus.append("line4")
+    .attr("class", "y-hover-line hover-line")
+    .attr("x1", width)
+    .attr("x2", width);
+
+focus.append("circle")
+    .attr("r", 7.5);
+
+focus.append("text")
+    .attr("x", 15)
+    .attr("dy", ".31em");
+
+svg.append("rect")
+    //.attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+    .attr("class", "overlay")
+    .attr("width", width)
+    .attr("height", height)
+    //.on("mouseover", function() { focus1.style("display", null); })
+    //.on("mouseout", function() { focus1.style("display", "none"); })
+    .on("mouseover", function() { focus.style("display", null);})
+    .on("mouseout", function() { focus.style("display", "none");div.transition().style("opacity", 0);})//div
+    .on("mousemove", mousemove3);
+
+function mousemove3() {
+    var x0 = x.invert(d3.mouse(this)[0]),
+        i = bisectDate(chart3, x0, 1),
+        d0 = chart4[i - 1],
+        d1 = chart4[i],
+        d = x0 - parseDate(d0.x) > parseDate(d1.x) - x0 ? d1 : d0;
+    focus.attr("transform", "translate(" + x(parseDate(d.x)) + "," + y(d.y) + ")");
+    //focus.select("text").text(function() { return "Failed Files:"+d.y+"  Date:"+formatDate(parseDate(d.x));})
+    focus.select(".x-hover-line").attr("y2", height - y(d.y));
+    focus.select(".y-hover-line").attr("x2", width + width);
+    div.transition().duration(50).style("opacity", .9);
+	        div	.html('Failed Files: '+ d.y + "<br/> Time: "  + d3.timeFormat(d.x,"%d-%b-%y"))
+	        .style("left", (d3.event.pageX + 20) + "px")
+	        .style("top", (d3.event.pageY - 20) + "px");
+}
+
+//############################################# Transfer Bytes##########################################################
+chart1=JSON.parse({{ chart1 | tojson | safe }});
+
+
+var svg = d3.select("#svg4")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+//div
+var div = d3.select("body").append("div").attr("class", "tooltip").style("opacity", 0);
+
+var x = d3.scaleTime().range([0, width]);
+var y = d3.scaleLinear().domain([0, 5000000000000000]).range([height, 0]).nice();
+
+var line = d3.line()
+    .x(function (d) { return x(parseDate(d.x)); })
+    .y(function (d) { return y(d.y); });
+
+var g = svg.append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+x.domain(d3.extent(chart1,function (d) { return parseDate(d.x); })).nice();
+
+y.domain([d3.min(chart1, function(d) { return d.y; }), d3.max(chart1, function(d) { return d.y; })]);
+
+svg.append("g")
+    .attr("class", "axis axis--x")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x));
+
+svg.append("g")
+    .attr("class", "axis axis--y")
+    .call(d3.axisLeft(y).ticks(6).tickFormat(bytesToString))
+    .append("text")
+    .attr("class", "axis-title")
+    .attr("transform", "rotate(-90)")
+    .attr("y", 6)
+    .attr("dy", ".71em")
+    .style("text-anchor", "end")
+    .attr("fill", "#5D6971")
+    .text("(Bytes)");
+
+svg.append("path")
+    .datum(chart1)
+    .attr("class", "line")
+    .attr("d", line);
+
+var focus = svg.append("g")
+    .attr("class", "focus")
+    .style("display", "none");
+
+focus.append("line")
+    .attr("class", "x-hover-line hover-line")
+    .attr("y1", 0)
+    .attr("y2", height);
+
+focus.append("line")
+    .attr("class", "y-hover-line hover-line")
+    .attr("x1", width)
+    .attr("x2", width);
+
+focus.append("circle")
+    .attr("r", 7.5);
+
+focus.append("text")
+    .attr("x", 15)
+    .attr("dy", ".31em");
+
+svg.append("rect")
+    //.attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+    .attr("class", "overlay")
+    .attr("width", width)
+    .attr("height", height)
+    .on("mouseover", function() { focus.style("display", null); })
+    .on("mouseout", function() { focus.style("display", "none");div.transition().style("opacity", 0);})//div
+    .on("mousemove", mousemove);
+
+function mousemove() {
+    var x0 = x.invert(d3.mouse(this)[0]),
+        i = bisectDate(chart1, x0, 1),
+        d0 = chart1[i - 1],
+        d1 = chart1[i],
+        d = x0 - parseDate(d0.x) > parseDate(d1.x) - x0 ? d1 : d0;
+    focus.attr("transform", "translate(" + x(parseDate(d.x)) + "," + y(d.y) + ")");
+    //focus.select("text").text(function() { return "Bytes:"+bytesToString(d.y)+"  Date:"+formatDate(parseDate(d.x));})
+    focus.select(".x-hover-line").attr("y2", height - y(d.y));
+    focus.select(".y-hover-line").attr("x2", width + width);
+    div.transition().duration(50).style("opacity", .9);
+	        div	.html('Bytes: '+ bytesToString(d.y) + "<br/> Time: "  + d3.timeFormat(d.x,"%d-%b-%y"))
+	        .style("left", (d3.event.pageX + 20) + "px")
+	        .style("top", (d3.event.pageY - 20) + "px");
+
+}
+</script>
+</body>
